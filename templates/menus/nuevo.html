@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Menú - Sistema de Cafetería{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">Nuevo Menú</h2>
+                    
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="fecha" class="form-label">Fecha</label>
+                            <input type="date" class="form-control" id="fecha" name="fecha" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="comida_principal" class="form-label">Comida Principal</label>
+                            <input type="text" class="form-control" id="comida_principal" name="comida_principal" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="guarnicion" class="form-label">Guarnición</label>
+                            <input type="text" class="form-control" id="guarnicion" name="guarnicion">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="postre" class="form-label">Postre</label>
+                            <input type="text" class="form-control" id="postre" name="postre">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="calorias" class="form-label">Calorías</label>
+                            <input type="number" class="form-control" id="calorias" name="calorias">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notas" class="form-label">Notas</label>
+                            <textarea class="form-control" id="notas" name="notas" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Guardar</button>
+                            <a href="{{ url_for('menus.lista_menus') }}" class="btn btn-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

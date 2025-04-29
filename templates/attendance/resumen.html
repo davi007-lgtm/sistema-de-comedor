@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Resumen de Asistencias - Sistema de Cafetería{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Resumen de Asistencias</h1>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="mes" class="form-label">Mes</label>
+                    <select class="form-select" id="mes" name="mes">
+                        {% for num, nombre in meses %}
+                        <option value="{{ num }}" {% if mes_actual == num %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="anio" class="form-label">Año</label>
+                    <select class="form-select" id="anio" name="anio">
+                        {% for a in anios %}
+                        <option value="{{ a }}" {% if anio_actual == a %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Estadísticas Generales -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Estadísticas Generales</h5>
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Asistencias
+                            <span class="badge bg-primary rounded-pill">{{ total_asistencias }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Estudiantes Becados
+                            <span class="badge bg-success rounded-pill">{{ total_becados }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Estudiantes Pagados
+                            <span class="badge bg-info rounded-pill">{{ total_pagados }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Asistencias por Día -->
+        <div class="col-md-8 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Asistencias por Día</h5>
+                    <canvas id="graficoAsistencias"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asistencias por Curso -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Asistencias por Curso</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Curso</th>
+                                    <th>Total</th>
+                                    <th>Becados</th>
+                                    <th>Pagados</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for curso in asistencias_por_curso %}
+                                <tr>
+                                    <td>{{ curso.nombre }}</td>
+                                    <td>{{ curso.total }}</td>
+                                    <td>{{ curso.becados }}</td>
+                                    <td>{{ curso.pagados }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Distribución por Tipo -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Distribución por Tipo de Estudiante</h5>
+                    <canvas id="graficoPorTipo"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Gráfico de Asistencias por Día
+    const ctxAsistencias = document.getElementById('graficoAsistencias').getContext('2d');
+    new Chart(ctxAsistencias, {
+        type: 'line',
+        data: {
+            labels: {{ dias|tojson }},
+            datasets: [{
+                label: 'Asistencias',
+                data: {{ asistencias_por_dia|tojson }},
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Gráfico de Distribución por Tipo
+    const ctxTipo = document.getElementById('graficoPorTipo').getContext('2d');
+    new Chart(ctxTipo, {
+        type: 'pie',
+        data: {
+            labels: ['Becados', 'Pagados'],
+            datasets: [{
+                data: [{{ total_becados }}, {{ total_pagados }}],
+                backgroundColor: [
+                    'rgb(40, 167, 69)',
+                    'rgb(23, 162, 184)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

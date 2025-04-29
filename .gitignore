@@ -1,0 +1,31 @@
+# Entorno virtual
+.venv/
+venv/
+ENV/
+
+# Base de datos SQLite
+*.db
+instance/
+
+# Archivos de caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de VS Code
+.vscode/
+*.code-workspace
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de log
+*.log
+
+# Archivos de configuración local
+.env
+.flaskenv
+
+# Archivos de migración de base de datos
+migrations/ 

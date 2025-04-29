@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Menús - Sistema de Cafetería{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Menús</h1>
+        <a href="{{ url_for('menus.nuevo_menu') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Nuevo Menú
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                           value="{{ request.args.get('fecha_inicio', '') }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin"
+                           value="{{ request.args.get('fecha_fin', '') }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ url_for('menus.lista_menus') }}" class="btn btn-secondary">Limpiar Filtros</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Menús -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Comida Principal</th>
+                            <th>Guarnición</th>
+                            <th>Postre</th>
+                            <th>Calorías</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for menu in menus %}
+                        <tr>
+                            <td>{{ menu.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ menu.comida_principal }}</td>
+                            <td>{{ menu.guarnicion }}</td>
+                            <td>{{ menu.postre }}</td>
+                            <td>{{ menu.calorias }}</td>
+                            <td>
+                                <a href="{{ url_for('menus.editar_menu', id=menu.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form action="{{ url_for('menus.eliminar_menu', id=menu.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar este menú?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Panel de Administración - Sistema de Cafetería{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Panel de Administración</h1>
+
+    <div class="row">
+        <!-- Estadísticas -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Estadísticas</h5>
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Usuarios
+                            <span class="badge bg-primary rounded-pill">{{ total_usuarios }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Usuarios Activos
+                            <span class="badge bg-success rounded-pill">{{ usuarios_activos }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enlaces Rápidos -->
+        <div class="col-md-8 mb-4">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Gestión de Usuarios</h5>
+                            <p class="card-text">Administra los usuarios del sistema.</p>
+                            <a href="{{ url_for('admin.lista_usuarios') }}" class="btn btn-primary">
+                                <i class="bi bi-people"></i> Ver Usuarios
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Configuración</h5>
+                            <p class="card-text">Ajusta la configuración del sistema.</p>
+                            <a href="{{ url_for('admin.configuracion') }}" class="btn btn-primary">
+                                <i class="bi bi-gear"></i> Configurar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Horarios</h5>
+                            <p class="card-text">Configura los horarios de servicio.</p>
+                            <a href="{{ url_for('admin.horarios') }}" class="btn btn-primary">
+                                <i class="bi bi-clock"></i> Gestionar Horarios
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

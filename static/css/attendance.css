@@ -1,0 +1,339 @@
+/* Variables de color para tema oscuro */
+:root {
+    --dark-bg: #1a1c23;
+    --dark-card: #2d3142;
+    --dark-hover: #373b52;
+    --dark-text: #e2e8f0;
+    --dark-text-muted: #9ca3af;
+    --dark-border: #4b5563;
+    --primary: #4e73df;
+    --primary-dark: #224abe;
+    --success: #1cc88a;
+    --success-dark: #169a6b;
+    --info: #36b9cc;
+    --info-dark: #258391;
+    --danger: #e74a3b;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+}
+
+/* Estilos generales de la página */
+body {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+}
+
+.attendance-container {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Mejoras para las tarjetas */
+.card {
+    background-color: var(--dark-card);
+    border: 1px solid var(--dark-border);
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 2rem 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-bottom: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    animation: shimmer 2s infinite;
+}
+
+.card-header h6 {
+    color: white !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+}
+
+.card-body {
+    background-color: var(--dark-card);
+}
+
+/* Estilos para los formularios */
+.form-control, .form-select {
+    background-color: var(--dark-bg);
+    border: 1px solid var(--dark-border);
+    color: var(--dark-text);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: var(--dark-hover);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    color: var(--dark-text);
+}
+
+.form-label {
+    color: var(--dark-text-muted);
+}
+
+/* Botones personalizados */
+.btn {
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.btn:hover::after {
+    transform: translateX(100%);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success), var(--success-dark));
+    border: none;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, var(--success-dark), var(--success));
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border: none;
+}
+
+/* Mejoras para las tablas */
+.table {
+    color: var(--dark-text);
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background-color: var(--dark-hover);
+    border-top: none;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    color: var(--primary);
+}
+
+.table tbody tr {
+    background-color: var(--dark-card);
+    transition: all 0.3s ease;
+    animation: slideIn 0.3s ease-out;
+}
+
+.table tbody tr:hover {
+    background-color: var(--dark-hover);
+}
+
+/* Badges personalizados */
+.badge {
+    padding: 0.5rem 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.badge::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    animation: shimmer 2s infinite;
+}
+
+.badge.bg-success {
+    background: linear-gradient(135deg, var(--success), var(--success-dark)) !important;
+}
+
+.badge.bg-info {
+    background: linear-gradient(135deg, var(--info), var(--info-dark)) !important;
+}
+
+/* Spinner de carga personalizado */
+.spinner-border {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-width: 0.2em;
+    color: var(--primary) !important;
+    animation: spin 1s linear infinite, pulse 1s ease-in-out infinite;
+}
+
+/* Mensajes de estado */
+.search-message {
+    padding: 2rem;
+    text-align: center;
+    color: var(--dark-text-muted);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.search-message i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    animation: pulse 2s infinite;
+}
+
+/* Dropdown menus */
+.dropdown-menu {
+    background-color: var(--dark-card);
+    border: 1px solid var(--dark-border);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+}
+
+.dropdown-item {
+    color: var(--dark-text);
+    transition: all 0.3s ease;
+}
+
+.dropdown-item:hover {
+    background-color: var(--dark-hover);
+    color: var(--primary);
+}
+
+/* Efectos hover para acciones */
+.dropdown-toggle {
+    transition: all 0.3s ease;
+}
+
+.dropdown-toggle:hover {
+    color: var(--primary);
+    transform: scale(1.1);
+}
+
+/* Estilos para el formulario de búsqueda */
+.search-form-container {
+    position: relative;
+}
+
+.search-form-container .input-group {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.search-form-container .input-group-text {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border: none;
+}
+
+/* Estilos para las estadísticas */
+.stats-card {
+    text-align: center;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.stats-card .stats-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: var(--primary);
+    animation: pulse 2s infinite;
+}
+
+.stats-card .stats-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark-text);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stats-card .stats-label {
+    font-size: 0.875rem;
+    color: var(--dark-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--dark-border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .table-responsive {
+        border: none;
+    }
+} 

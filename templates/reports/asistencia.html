@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Reporte de Asistencias - Sistema de Cafetería{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Reporte de Asistencias</h1>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                           value="{{ fecha_inicio|string if fecha_inicio else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin"
+                           value="{{ fecha_fin|string if fecha_fin else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="tipo_estudiante" class="form-label">Tipo de Estudiante</label>
+                    <select class="form-select" id="tipo_estudiante" name="tipo_estudiante">
+                        <option value="">Todos</option>
+                        <option value="becado" {% if tipo_estudiante == 'becado' %}selected{% endif %}>Becado</option>
+                        <option value="pagado" {% if tipo_estudiante == 'pagado' %}selected{% endif %}>Pagado</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ url_for('reports.reporte_asistencia') }}" class="btn btn-secondary">Limpiar Filtros</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Identificador</th>
+                            <th>Curso</th>
+                            <th>Tipo</th>
+                            <th>Total Asistencias</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in resultados %}
+                        <tr>
+                            <td>{{ r.nombre }}</td>
+                            <td>{{ r.identificador }}</td>
+                            <td>{{ r.curso }}</td>
+                            <td>{{ r.tipo_estudiante|title }}</td>
+                            <td>{{ r.total_asistencias }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Botones de Exportación -->
+            <div class="mt-3">
+                <a href="{{ url_for('reports.exportar_csv', fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, tipo_estudiante=tipo_estudiante) }}" 
+                   class="btn btn-success">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> Exportar a CSV
+                </a>
+                <a href="{{ url_for('reports.exportar_pdf', fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, tipo_estudiante=tipo_estudiante) }}" 
+                   class="btn btn-danger">
+                    <i class="bi bi-file-earmark-pdf"></i> Exportar a PDF
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

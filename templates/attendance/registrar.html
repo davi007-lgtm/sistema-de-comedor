@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Asistencia - Sistema de Cafetería{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/attendance.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 attendance-container">
+    <!-- Header con estadísticas rápidas -->
+    <div class="row mb-4 fade-in">
+        <div class="col-12">
+            <h1 class="text-2xl font-bold text-primary mb-2">
+                <i class="fas fa-user-check me-2"></i>Registro de Asistencias
+            </h1>
+            <p class="text-dark-text-muted">Gestione el registro de asistencias de estudiantes a la cafetería</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Panel izquierdo: Búsqueda y Registro -->
+        <div class="col-xl-4 col-lg-5">
+            <!-- Tarjeta de búsqueda -->
+            <div class="card shadow-lg slide-in">
+                <div class="card-header">
+                    <h6 class="m-0 font-semibold">
+                        <i class="fas fa-search me-2"></i>Buscar Estudiante
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form id="searchForm" class="search-form-container">
+                        <div class="mb-3">
+                            <label for="searchType" class="form-label">Buscar por:</label>
+                            <select class="form-select" id="searchType" name="searchType">
+                                <option value="cedula">Identificador</option>
+                                <option value="nombre">Nombre</option>
+                                <option value="curso">Curso</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="searchValue" class="form-label">Valor:</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchValue" name="searchValue" 
+                                       placeholder="Ingrese el valor a buscar...">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tarjeta de registro manual -->
+            <div class="card shadow-lg mt-4 slide-in" style="animation-delay: 0.1s;">
+                <div class="card-header">
+                    <h6 class="m-0 font-semibold">
+                        <i class="fas fa-edit me-2"></i>Registro Manual
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('attendance.registrar_asistencia') }}">
+                        <div class="mb-3">
+                            <label for="cedula" class="form-label">Identificador:</label>
+                            <input type="text" class="form-control" id="cedula" name="cedula" required 
+                                   placeholder="Ingrese el identificador del estudiante...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="observaciones" class="form-label">Observaciones:</label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="2"
+                                    placeholder="Agregue observaciones si es necesario..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-check me-2"></i>Registrar Asistencia
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel derecho: Resultados y últimas asistencias -->
+        <div class="col-xl-8 col-lg-7">
+            <!-- Tarjeta de resultados de búsqueda -->
+            <div class="card shadow-lg slide-in" style="animation-delay: 0.2s;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-semibold">
+                        <i class="fas fa-list me-2"></i>Resultados de Búsqueda
+                    </h6>
+                    <span class="badge bg-primary" id="resultCount">0 resultados</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Identificador</th>
+                                    <th>Nombre</th>
+                                    <th>Curso</th>
+                                    <th>Tipo</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="searchResults">
+                                {% for estudiante in estudiantes %}
+                                <tr class="fade-in">
+                                    <td class="text-nowrap">{{ estudiante.identificador }}</td>
+                                    <td>{{ estudiante.nombre }}</td>
+                                    <td>{{ estudiante.curso }}</td>
+                                    <td>
+                                        {% if estudiante.tipo_estudiante == 'becado' %}
+                                        <span class="badge bg-success">Becado</span>
+                                        {% else %}
+                                        <span class="badge bg-info">Pagado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <form method="POST" action="{{ url_for('attendance.registrar_asistencia') }}" class="d-inline">
+                                            <input type="hidden" name="cedula" value="{{ estudiante.identificador }}">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Registrar Asistencia">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tarjeta de últimas asistencias -->
+            <div class="card shadow-lg mt-4 slide-in" style="animation-delay: 0.3s;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-semibold">
+                        <i class="fas fa-clock me-2"></i>Últimas Asistencias Registradas
+                    </h6>
+                    <a href="{{ url_for('attendance.historial') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-history me-1"></i>Ver historial
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Hora</th>
+                                    <th>Estudiante</th>
+                                    <th>Curso</th>
+                                    <th>Tipo</th>
+                                    <th>Método</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for asistencia in ultimas_asistencias %}
+                                <tr class="fade-in" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                                    <td class="text-nowrap">{{ asistencia.hora.strftime('%H:%M') }}</td>
+                                    <td>{{ asistencia.estudiante.nombre }}</td>
+                                    <td>{{ asistencia.estudiante.curso }}</td>
+                                    <td>
+                                        {% if asistencia.estudiante.tipo_estudiante == 'becado' %}
+                                        <span class="badge bg-success">Becado</span>
+                                        {% else %}
+                                        <span class="badge bg-info">Pagado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if asistencia.metodo_registro == 'manual' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                            {{ asistencia.metodo_registro|title }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    // Mostrar indicador de carga
+    const tbody = document.getElementById('searchResults');
+    const resultCount = document.getElementById('resultCount');
+    
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="5">
+                <div class="search-message">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Buscando...</span>
+                    </div>
+                    <p class="mt-2 mb-0">Buscando estudiantes...</p>
+                </div>
+            </td>
+        </tr>
+    `;
+    
+    fetch('{{ url_for("attendance.buscar_estudiantes") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        tbody.innerHTML = '';
+        resultCount.textContent = `${data.estudiantes.length} resultados`;
+        
+        if (data.estudiantes.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5">
+                        <div class="search-message">
+                            <i class="fas fa-info-circle text-info"></i>
+                            <p class="mt-2 mb-0">No se encontraron estudiantes</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        data.estudiantes.forEach((estudiante, index) => {
+            const row = document.createElement('tr');
+            row.className = 'fade-in';
+            row.style.animationDelay = `${index * 0.1}s`;
+            row.innerHTML = `
+                <td class="text-nowrap">${estudiante.cedula}</td>
+                <td>${estudiante.nombre}</td>
+                <td>${estudiante.curso}</td>
+                <td>
+                    <span class="badge ${estudiante.becado ? 'bg-success' : 'bg-info'}">
+                        ${estudiante.becado ? 'Becado' : 'Pagado'}
+                    </span>
+                </td>
+                <td class="text-center">
+                    <form method="POST" action="{{ url_for('attendance.registrar_asistencia') }}" class="d-inline">
+                        <input type="hidden" name="cedula" value="${estudiante.cedula}">
+                        <button type="submit" class="btn btn-success btn-sm" title="Registrar Asistencia">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </form>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    <div class="search-message">
+                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                        <p class="mt-2 mb-0">Error al realizar la búsqueda</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        resultCount.textContent = '0 resultados';
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 

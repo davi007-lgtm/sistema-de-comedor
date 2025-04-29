@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Asistencias - Sistema de Cafetería{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Historial de Asistencias</h1>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                           value="{{ request.args.get('fecha_inicio', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin"
+                           value="{{ request.args.get('fecha_fin', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="curso" class="form-label">Curso</label>
+                    <select class="form-select" id="curso" name="curso">
+                        <option value="">Todos los cursos</option>
+                        {% for c in cursos %}
+                        <option value="{{ c }}" {% if request.args.get('curso') == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="tipo_estudiante" class="form-label">Tipo de Estudiante</label>
+                    <select class="form-select" id="tipo_estudiante" name="tipo_estudiante">
+                        <option value="">Todos</option>
+                        <option value="becado" {% if request.args.get('tipo_estudiante') == 'becado' %}selected{% endif %}>Becado</option>
+                        <option value="pagado" {% if request.args.get('tipo_estudiante') == 'pagado' %}selected{% endif %}>Pagado</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ url_for('attendance.historial') }}" class="btn btn-secondary">Limpiar Filtros</a>
+                    <div class="float-end">
+                        <a href="{{ url_for('reports.exportar_csv', **request.args) }}" class="btn btn-success">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> Exportar a CSV
+                        </a>
+                        <a href="{{ url_for('reports.exportar_pdf', **request.args) }}" class="btn btn-danger">
+                            <i class="bi bi-file-earmark-pdf"></i> Exportar a PDF
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Asistencias -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Estudiante</th>
+                            <th>Curso</th>
+                            <th>Tipo</th>
+                            <th>Método</th>
+                            <th>Registrado por</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asistencia in asistencias %}
+                        <tr>
+                            <td>{{ asistencia.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ asistencia.hora.strftime('%H:%M:%S') }}</td>
+                            <td>{{ asistencia.estudiante.nombre }}</td>
+                            <td>{{ asistencia.estudiante.curso }}</td>
+                            <td>{{ asistencia.estudiante.tipo_estudiante|title }}</td>
+                            <td>
+                                <span class="badge {% if asistencia.metodo_registro == 'QR' %}bg-success{% else %}bg-primary{% endif %}">
+                                    {{ asistencia.metodo_registro }}
+                                </span>
+                            </td>
+                            <td>{{ asistencia.registrado_por_usuario.nombre if asistencia.registrado_por_usuario else 'Sistema' }}</td>
+                            <td>{{ asistencia.observaciones or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if asistencias.pages > 1 %}
+            <nav aria-label="Navegación de páginas" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if not asistencias.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('attendance.historial', page=asistencias.prev_num, **request.args) if asistencias.has_prev else '#' }}">Anterior</a>
+                    </li>
+                    {% for page_num in asistencias.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == asistencias.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('attendance.historial', page=page_num, **request.args) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not asistencias.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('attendance.historial', page=asistencias.next_num, **request.args) if asistencias.has_next else '#' }}">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 
