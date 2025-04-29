@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from extensions import db
 from models import Estudiante, Asistencia
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from sqlalchemy import func, case
 import qrcode
 from io import BytesIO
@@ -13,132 +13,46 @@ attendance_bp = Blueprint('attendance', __name__)
 @attendance_bp.route('/asistencia')
 @login_required
 def index():
-    return redirect(url_for('attendance.registrar_asistencia'))
+    """Página principal de asistencias"""
+    ultimas_asistencias = Asistencia.query.join(Estudiante).order_by(
+        Asistencia.fecha.desc()
+    ).limit(10).all()
+    
+    return render_template('attendance/registrar.html',
+                         ultimas_asistencias=ultimas_asistencias)
 
-@attendance_bp.route('/asistencia/registrar', methods=['GET', 'POST'])
+@attendance_bp.route('/asistencia/scanner')
 @login_required
-def registrar_asistencia():
-    if request.method == 'GET':
-        # Obtener las últimas asistencias registradas
-        ultimas_asistencias = Asistencia.query.join(Estudiante).order_by(
-            Asistencia.fecha.desc(),
-            Asistencia.hora.desc()
-        ).limit(10).all()
-        
-        return render_template('attendance/registrar.html',
-                            estudiantes=[],
-                            ultimas_asistencias=ultimas_asistencias)
+def scanner():
+    """Vista para el escáner de códigos QR"""
+    return render_template('attendance/scanner.html')
 
-    # Procesar el registro de asistencia (POST)
-    identificador = request.form.get('cedula')  # Mantenemos 'cedula' en el form por compatibilidad
-    observaciones = request.form.get('observaciones', '').strip()
-    
-    if not identificador:
-        flash('El identificador del estudiante es requerido', 'error')
-        return redirect(url_for('attendance.registrar_asistencia'))
-    
-    try:
-        # Buscar estudiante
-        estudiante = Estudiante.query.filter_by(identificador=identificador).first()
-        
-        if not estudiante:
-            flash('Estudiante no encontrado', 'error')
-            return redirect(url_for('attendance.registrar_asistencia'))
-        
-        if not estudiante.estado:
-            flash('El estudiante está inactivo', 'error')
-            return redirect(url_for('attendance.registrar_asistencia'))
-        
-        # Verificar asistencia existente
-        hoy = date.today()
-        asistencia_existente = Asistencia.query.filter_by(
-            estudiante_id=estudiante.id,
-            fecha=hoy
-        ).first()
-        
-        if asistencia_existente:
-            flash('Ya se registró asistencia hoy para este estudiante', 'warning')
-            return redirect(url_for('attendance.registrar_asistencia'))
-        
-        # Registrar nueva asistencia
-        asistencia = Asistencia(
-            estudiante_id=estudiante.id,
-            fecha=hoy,
-            hora=datetime.now().time(),
-            metodo_registro='manual',
-            registrado_por=current_user.id,
-            observaciones=observaciones if observaciones else None
-        )
-        
-        db.session.add(asistencia)
-        db.session.commit()
-        
-        flash(f'Asistencia registrada exitosamente para {estudiante.nombre}', 'success')
-        
-    except Exception as e:
-        db.session.rollback()
-        flash('Error al registrar la asistencia: ' + str(e), 'error')
-    
-    return redirect(url_for('attendance.registrar_asistencia'))
-
-@attendance_bp.route('/asistencia/buscar', methods=['POST'])
+@attendance_bp.route('/asistencia/manual')
 @login_required
-def buscar_estudiantes():
-    search_type = request.form.get('searchType')
-    search_value = request.form.get('searchValue', '').strip()
+def registro_manual():
+    """Vista para el registro manual de asistencias"""
+    ultimas_asistencias = Asistencia.query.join(Estudiante).order_by(
+        Asistencia.fecha.desc()
+    ).limit(10).all()
     
-    if not search_type or not search_value:
-        return jsonify({
-            'error': 'Tipo y valor de búsqueda son requeridos',
-            'estudiantes': []
-        }), 400
-    
-    try:
-        query = Estudiante.query
-        
-        if search_type == 'cedula':
-            query = query.filter(Estudiante.identificador.ilike(f'%{search_value}%'))
-        elif search_type == 'nombre':
-            query = query.filter(Estudiante.nombre.ilike(f'%{search_value}%'))
-        elif search_type == 'curso':
-            query = query.filter(Estudiante.curso.ilike(f'%{search_value}%'))
-        else:
-            return jsonify({
-                'error': 'Tipo de búsqueda no válido',
-                'estudiantes': []
-            }), 400
-        
-        estudiantes = query.filter_by(estado=True).all()
-        
-        return jsonify({
-            'estudiantes': [{
-                'cedula': e.identificador,  # Mantenemos 'cedula' en la respuesta por compatibilidad
-                'nombre': e.nombre,
-                'curso': e.curso,
-                'becado': e.tipo_estudiante == 'becado'
-            } for e in estudiantes]
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'error': f'Error en la búsqueda: {str(e)}',
-            'estudiantes': []
-        }), 500
+    return render_template('attendance/registrar.html',
+                         ultimas_asistencias=ultimas_asistencias)
 
 @attendance_bp.route('/asistencia/historial')
 @login_required
 def historial():
+    """Vista para el historial de asistencias"""
     fecha_inicio = request.args.get('fecha_inicio', type=str)
     fecha_fin = request.args.get('fecha_fin', type=str)
     
-    query = Asistencia.query
+    query = Asistencia.query.join(Estudiante)
     
     if fecha_inicio:
         query = query.filter(Asistencia.fecha >= datetime.strptime(fecha_inicio, '%Y-%m-%d').date())
     if fecha_fin:
         query = query.filter(Asistencia.fecha <= datetime.strptime(fecha_fin, '%Y-%m-%d').date())
     
-    asistencias = query.order_by(Asistencia.fecha.desc(), Asistencia.hora.desc()).all()
+    asistencias = query.order_by(Asistencia.fecha.desc()).all()
     return render_template('attendance/historial.html', asistencias=asistencias)
 
 @attendance_bp.route('/estudiantes/<int:id>/qr')
@@ -215,4 +129,173 @@ def resumen():
                          asistencias_becados=asistencias_becados,
                          asistencias_pagados=asistencias_pagados,
                          asistencias_por_dia=asistencias_por_dia,
-                         asistencias_por_curso=asistencias_por_curso) 
+                         asistencias_por_curso=asistencias_por_curso)
+
+@attendance_bp.route('/api/asistencias/registrar', methods=['POST'])
+@login_required
+def api_registrar_asistencia():
+    """API endpoint para registrar asistencia"""
+    try:
+        data = request.json
+        estudiante_id = data['estudiante_id']
+        tipo = data['tipo']
+
+        # Verificar si el estudiante existe
+        estudiante = Estudiante.query.get_or_404(estudiante_id)
+        
+        # Verificar si el estudiante está activo
+        if not estudiante.estado:
+            return jsonify({
+                'success': False,
+                'message': 'El estudiante no está activo'
+            }), 400
+
+        # Verificar si ya existe un registro para este tipo de comida hoy
+        hoy = datetime.utcnow().date()
+        registro_existente = Asistencia.query.filter(
+            Asistencia.estudiante_id == estudiante_id,
+            Asistencia.tipo == tipo,
+            db.func.date(Asistencia.fecha) == hoy
+        ).first()
+
+        if registro_existente:
+            return jsonify({
+                'success': False,
+                'message': f'Ya existe un registro de {tipo} para este estudiante hoy'
+            }), 400
+
+        # Crear nuevo registro de asistencia
+        asistencia = Asistencia(
+            estudiante_id=estudiante_id,
+            tipo=tipo,
+            registrado_por=current_user.id
+        )
+        db.session.add(asistencia)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Asistencia registrada exitosamente',
+            'estudiante_nombre': estudiante.nombre,
+            'tipo': tipo,
+            'fecha': asistencia.fecha.isoformat()
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Error al registrar la asistencia',
+            'error': str(e)
+        }), 400
+
+@attendance_bp.route('/api/asistencias/buscar', methods=['POST'])
+@login_required
+def api_buscar_estudiante():
+    """API endpoint para buscar estudiantes"""
+    try:
+        data = request.json
+        valor = data.get('valor', '').strip()
+        tipo = data.get('tipo', 'identificador')
+
+        if not valor:
+            return jsonify({
+                'success': False,
+                'message': 'El valor de búsqueda es requerido'
+            }), 400
+
+        query = Estudiante.query
+
+        if tipo == 'identificador':
+            query = query.filter(Estudiante.identificador.ilike(f'%{valor}%'))
+        elif tipo == 'nombre':
+            query = query.filter(Estudiante.nombre.ilike(f'%{valor}%'))
+        elif tipo == 'grado':
+            query = query.filter(Estudiante.grado.ilike(f'%{valor}%'))
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Tipo de búsqueda no válido'
+            }), 400
+
+        estudiantes = query.filter_by(estado=True).all()
+        return jsonify({
+            'success': True,
+            'estudiantes': [estudiante.to_dict() for estudiante in estudiantes]
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'Error en la búsqueda',
+            'error': str(e)
+        }), 400
+
+@attendance_bp.route('/api/asistencias/historial', methods=['GET'])
+@login_required
+def api_obtener_historial():
+    """API endpoint para obtener historial de asistencias"""
+    try:
+        fecha_inicio = request.args.get('fecha_inicio', default=datetime.utcnow().date().isoformat())
+        fecha_fin = request.args.get('fecha_fin', default=datetime.utcnow().date().isoformat())
+        
+        asistencias = Asistencia.query.filter(
+            db.func.date(Asistencia.fecha).between(fecha_inicio, fecha_fin)
+        ).order_by(Asistencia.fecha.desc()).all()
+
+        return jsonify({
+            'success': True,
+            'asistencias': [asistencia.to_dict() for asistencia in asistencias]
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'Error al obtener el historial',
+            'error': str(e)
+        }), 400
+
+@attendance_bp.route('/asistencia/registrar', methods=['POST'])
+@login_required
+def registrar_asistencia():
+    """Endpoint para registrar asistencia via formulario HTML"""
+    try:
+        estudiante_id = request.form['estudiante_id']
+        tipo = request.form.get('tipo', 'almuerzo')  # valor por defecto
+
+        # Verificar si el estudiante existe
+        estudiante = Estudiante.query.get_or_404(estudiante_id)
+        
+        # Verificar si el estudiante está activo
+        if not estudiante.estado:
+            flash('El estudiante no está activo', 'error')
+            return redirect(url_for('attendance.index'))
+
+        # Verificar si ya existe un registro para este tipo de comida hoy
+        hoy = datetime.utcnow().date()
+        registro_existente = Asistencia.query.filter(
+            Asistencia.estudiante_id == estudiante_id,
+            Asistencia.tipo == tipo,
+            db.func.date(Asistencia.fecha) == hoy
+        ).first()
+
+        if registro_existente:
+            flash(f'Ya existe un registro de {tipo} para este estudiante hoy', 'warning')
+            return redirect(url_for('attendance.index'))
+
+        # Crear nuevo registro de asistencia
+        asistencia = Asistencia(
+            estudiante_id=estudiante_id,
+            tipo=tipo,
+            registrado_por=current_user.id
+        )
+        db.session.add(asistencia)
+        db.session.commit()
+
+        flash(f'Asistencia registrada exitosamente para {estudiante.nombre}', 'success')
+        return redirect(url_for('attendance.index'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al registrar la asistencia: ' + str(e), 'error')
+        return redirect(url_for('attendance.index')) 

@@ -187,6 +187,10 @@
 document.getElementById('searchForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const formData = new FormData(this);
+    const data = {
+        tipo: formData.get('searchType'),
+        valor: formData.get('searchValue')
+    };
     
     // Mostrar indicador de carga
     const tbody = document.getElementById('searchResults');
@@ -205,9 +209,12 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
         </tr>
     `;
     
-    fetch('{{ url_for("attendance.buscar_estudiantes") }}', {
+    fetch('{{ url_for("attendance.api_buscar_estudiante") }}', {
         method: 'POST',
-        body: formData
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
     .then(data => {
