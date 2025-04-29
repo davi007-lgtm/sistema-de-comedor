@@ -108,9 +108,3 @@ DATABASE_URL=sqlite:///cafeteria.db
 ## Licencia
 
 Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
-
-## Contacto
-
-Tu Nombre - [@tu_twitter](https://twitter.com/tu_twitter) - email@example.com
-
-Link del proyecto: [https://github.com/tu-usuario/sistema-cafeteria](https://github.com/tu-usuario/sistema-cafeteria) 
