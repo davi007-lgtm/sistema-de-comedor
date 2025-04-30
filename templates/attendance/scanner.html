@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Escáner QR - Sistema de Cafetería{% endblock %}
+
+{% block styles %}
+<style>
+    #preview {
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+    }
+    .scanner-container {
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+    }
+    .scanner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.1);
+        border: 2px solid #198754;
+        pointer-events: none;
+    }
+    .camera-error {
+        text-align: center;
+        padding: 2rem;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 10px;
+    }
+    .success-scan {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(25, 135, 84, 0.9);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        display: none;
+        z-index: 1000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-qrcode me-2"></i>Escáner QR
+                    </h5>
+                    <div>
+                        <button id="switchCamera" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-camera-rotate me-2"></i>Cambiar Cámara
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="scanner-container mb-3">
+                        <video id="preview"></video>
+                        <div class="scanner-overlay"></div>
+                    </div>
+                    <div class="camera-error d-none">
+                        <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
+                        <h5>No se pudo acceder a la cámara</h5>
+                        <p class="text-muted">Por favor, asegúrate de que:</p>
+                        <ul class="text-start text-muted">
+                            <li>Has dado permiso para usar la cámara</li>
+                            <li>Tu dispositivo tiene una cámara funcionando</li>
+                            <li>Ninguna otra aplicación está usando la cámara</li>
+                        </ul>
+                        <button class="btn btn-primary mt-3" onclick="initScanner()">
+                            <i class="fas fa-redo me-2"></i>Reintentar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Últimas asistencias registradas -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Últimos Registros
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Hora</th>
+                                    <th>Estudiante</th>
+                                    <th>Curso</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="registrosRecientes">
+                                <!-- Los registros se agregarán dinámicamente aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notificación de escaneo exitoso -->
+<div id="successNotification" class="success-scan">
+    <i class="fas fa-check-circle me-2"></i>
+    <span id="successMessage"></span>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Instascan para escaneo QR -->
+<script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+<script>
+let scanner = null;
+let currentCamera = 0;
+let cameras = [];
+
+async function initScanner() {
+    try {
+        // Ocultar mensaje de error si está visible
+        document.querySelector('.camera-error').classList.add('d-none');
+        
+        // Obtener las cámaras disponibles
+        cameras = await Instascan.Camera.getCameras();
+        
+        if (cameras.length > 0) {
+            // Crear el scanner
+            scanner = new Instascan.Scanner({
+                video: document.getElementById('preview'),
+                mirror: false // Importante para móviles
+            });
+
+            // Manejar los códigos QR escaneados
+            scanner.addListener('scan', function(content) {
+                handleQRCode(content);
+            });
+
+            // Iniciar con la cámara trasera si está disponible
+            let selectedCamera = cameras[currentCamera];
+            if (cameras.length > 1) {
+                // En móviles, preferir la cámara trasera
+                selectedCamera = cameras.find(camera => !camera.name.toLowerCase().includes('front')) || cameras[0];
+            }
+
+            await scanner.start(selectedCamera);
+        } else {
+            showCameraError();
+        }
+    } catch (e) {
+        console.error('Error al inicializar el scanner:', e);
+        showCameraError();
+    }
+}
+
+function showCameraError() {
+    document.querySelector('.camera-error').classList.remove('d-none');
+    document.querySelector('.scanner-container').style.display = 'none';
+}
+
+async function handleQRCode(content) {
+    try {
+        const response = await fetch('{{ url_for("attendance.api_registrar_asistencia") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                estudiante_id: content,
+                tipo: 'almuerzo'
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            showSuccess(data.message);
+            updateRegistrosRecientes(data);
+        } else {
+            showError(data.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showError('Error al procesar el código QR');
+    }
+}
+
+function showSuccess(message) {
+    const notification = document.getElementById('successNotification');
+    const messageElement = document.getElementById('successMessage');
+    messageElement.textContent = message;
+    notification.style.display = 'block';
+    
+    // Ocultar después de 3 segundos
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 3000);
+}
+
+function showError(message) {
+    // Usar el sistema de alertas de Bootstrap
+    const alertHtml = `
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    document.querySelector('.card-body').insertAdjacentHTML('afterbegin', alertHtml);
+}
+
+function updateRegistrosRecientes(data) {
+    const tbody = document.getElementById('registrosRecientes');
+    const row = document.createElement('tr');
+    const now = new Date();
+    
+    row.innerHTML = `
+        <td>${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}</td>
+        <td>${data.estudiante_nombre}</td>
+        <td>${data.curso || '-'}</td>
+        <td><span class="badge bg-success">Registrado</span></td>
+    `;
+    
+    tbody.insertBefore(row, tbody.firstChild);
+    
+    // Mantener solo los últimos 10 registros
+    while (tbody.children.length > 10) {
+        tbody.removeChild(tbody.lastChild);
+    }
+}
+
+// Cambiar de cámara
+document.getElementById('switchCamera').addEventListener('click', async () => {
+    if (cameras.length > 1) {
+        currentCamera = (currentCamera + 1) % cameras.length;
+        if (scanner) {
+            await scanner.start(cameras[currentCamera]);
+        }
+    }
+});
+
+// Inicializar el scanner cuando se carga la página
+document.addEventListener('DOMContentLoaded', initScanner);
+</script>
+{% endblock %} 

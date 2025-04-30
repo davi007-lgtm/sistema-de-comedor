@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Código QR - {{ student.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h4 class="card-title mb-0">Código QR de {{ student.nombre }}</h4>
+                </div>
+                <div class="card-body text-center">
+                    <div id="qrcode" class="d-inline-block p-3 bg-white rounded mb-3"></div>
+                    <div class="text-muted">
+                        <p class="mb-1">ID: {{ student.id }}</p>
+                        <p class="mb-1">Curso: {{ student.curso }}</p>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <button class="btn btn-primary" onclick="downloadQR()">
+                        <i class="fas fa-download me-2"></i>Descargar QR
+                    </button>
+                    <a href="{{ url_for('students.lista_estudiantes') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const qr = new QRCode(document.getElementById("qrcode"), {
+            text: "STUDENT:{{ student.id }}",
+            width: 256,
+            height: 256,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    });
+
+    function downloadQR() {
+        const qrImage = document.querySelector("#qrcode img");
+        const link = document.createElement('a');
+        link.download = "qr-estudiante-{{ student.id }}.png";
+        link.href = qrImage.src;
+        link.click();
+    }
+</script>
+{% endblock %} 

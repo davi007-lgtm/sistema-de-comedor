@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Lista de Estudiantes{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-0">Lista de Estudiantes</h1>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('students.nuevo_estudiante') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nuevo Estudiante
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Curso</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for estudiante in estudiantes %}
+                        <tr>
+                            <td>{{ estudiante.identificador }}</td>
+                            <td>{{ estudiante.nombre }}</td>
+                            <td>{{ estudiante.curso }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if estudiante.estado else 'danger' }}">
+                                    {{ 'Activo' if estudiante.estado else 'Inactivo' }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('students.generar_qr', student_id=estudiante.id) }}" 
+                                   class="btn btn-sm btn-info me-2"
+                                   title="Ver QR">
+                                    <i class="fas fa-qrcode"></i>
+                                </a>
+                                <button class="btn btn-sm btn-primary me-2" 
+                                        onclick="editStudent('{{ estudiante.id }}')"
+                                        title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-{{ 'danger' if estudiante.estado else 'success' }}"
+                                        onclick="toggleStudentStatus('{{ estudiante.id }}')"
+                                        title="{{ 'Desactivar' if estudiante.estado else 'Activar' }}">
+                                    <i class="fas fa-{{ 'times' if estudiante.estado else 'check' }}"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function editStudent(studentId) {
+        // Implementar lógica de edición
+    }
+
+    async function toggleStudentStatus(studentId) {
+        try {
+            const response = await fetch(`/api/estudiantes/${studentId}/toggle`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert(data.message || 'Error al cambiar el estado del estudiante');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al cambiar el estado del estudiante');
+        }
+    }
+</script>
+{% endblock %} 

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from extensions import db
 from models import Estudiante
@@ -13,30 +13,44 @@ students_bp = Blueprint('students', __name__)
 @login_required
 def lista_estudiantes():
     estudiantes = Estudiante.query.all()
-    return render_template('students/lista.html', estudiantes=estudiantes)
+    grados = ['1°', '2°', '3°', '4°', '5°', '6°']
+    return render_template('students/lista_estudiantes.html', estudiantes=estudiantes, grados=grados)
 
 @students_bp.route('/estudiantes/nuevo', methods=['GET', 'POST'])
 @login_required
 def nuevo_estudiante():
     if request.method == 'POST':
-        # Generar identificador único (puede ser un número secuencial o un UUID)
-        identificador = f"EST{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        
-        estudiante = Estudiante(
-            identificador=identificador,
-            nombre=request.form['nombre'],
-            curso=request.form['curso'],
-            tipo_estudiante=request.form['tipo_estudiante'],
-            estado=True
-        )
-        db.session.add(estudiante)
         try:
+            # Validar campos requeridos
+            if not request.form.get('nombre'):
+                flash('El nombre es requerido', 'error')
+                return render_template('students/nuevo.html')
+            if not request.form.get('curso'):
+                flash('El grado es requerido', 'error')
+                return render_template('students/nuevo.html')
+            if not request.form.get('tipo_estudiante'):
+                flash('El tipo de estudiante es requerido', 'error')
+                return render_template('students/nuevo.html')
+
+            # Generar identificador único
+            identificador = f"EST{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            
+            estudiante = Estudiante(
+                identificador=identificador,
+                nombre=request.form['nombre'].strip(),
+                curso=request.form['curso'],
+                tipo_estudiante=request.form['tipo_estudiante'],
+                estado=True
+            )
+            db.session.add(estudiante)
             db.session.commit()
             flash('Estudiante registrado exitosamente', 'success')
             return redirect(url_for('students.lista_estudiantes'))
-        except:
+        except Exception as e:
             db.session.rollback()
-            flash('Error al registrar el estudiante', 'error')
+            print(f"Error al crear estudiante: {str(e)}")  # Para debugging
+            flash(f'Error al registrar el estudiante: {str(e)}', 'error')
+            return render_template('students/nuevo.html')
     
     return render_template('students/nuevo.html')
 
@@ -82,21 +96,104 @@ def toggle_estado(id):
     
     return redirect(url_for('students.lista_estudiantes'))
 
-@students_bp.route('/estudiantes/<int:id>/qr')
+@students_bp.route('/estudiantes/<int:student_id>/qr')
 @login_required
-def generar_qr(id):
-    estudiante = Estudiante.query.get_or_404(id)
-    
-    # Generar QR con el identificador del estudiante
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(estudiante.identificador)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill_color="black", back_color="white")
-    buffered = BytesIO()
-    img.save(buffered, format="PNG")
-    qr_base64 = base64.b64encode(buffered.getvalue()).decode()
-    
-    return render_template('students/qr.html', 
-                         estudiante=estudiante, 
-                         qr_code=qr_base64) 
+def generar_qr(student_id):
+    estudiante = Estudiante.query.get_or_404(student_id)
+    return render_template('students/qr.html', student=estudiante)
+
+@students_bp.route('/api/estudiantes', methods=['POST'])
+@login_required
+def crear_estudiante():
+    try:
+        data = request.json
+        # Validar que todos los campos requeridos estén presentes
+        required_fields = ['nombre', 'curso']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({
+                    'success': False,
+                    'message': f'El campo {field} es requerido',
+                    'error': 'missing_field'
+                }), 400
+
+        # Generar identificador único
+        identificador = f"EST{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Si se envía grado, usarlo como curso
+        curso = data.get('grado', data.get('curso'))
+        
+        estudiante = Estudiante(
+            identificador=identificador,
+            nombre=data['nombre'],
+            curso=curso,
+            tipo_estudiante=data.get('tipo_estudiante', 'pagado'),  # valor por defecto si no se especifica
+            estado=True
+        )
+        
+        db.session.add(estudiante)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'id': estudiante.id,
+            'message': 'Estudiante creado exitosamente'
+        })
+    except Exception as e:
+        db.session.rollback()
+        # Log del error para debugging
+        print(f"Error al crear estudiante: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Error al crear el estudiante: ' + str(e),
+            'error': 'database_error'
+        }), 400
+
+@students_bp.route('/api/estudiantes/<int:student_id>', methods=['PUT'])
+@login_required
+def actualizar_estudiante(student_id):
+    try:
+        estudiante = Estudiante.query.get_or_404(student_id)
+        data = request.json
+        
+        if 'nombre' in data:
+            estudiante.nombre = data['nombre']
+        if 'curso' in data:
+            estudiante.curso = data['curso']
+        if 'tipo_estudiante' in data:
+            estudiante.tipo_estudiante = data['tipo_estudiante']
+        if 'estado' in data:
+            estudiante.estado = data['estado']
+        
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Estudiante actualizado exitosamente'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Error al actualizar el estudiante',
+            'error': str(e)
+        }), 400
+
+@students_bp.route('/api/estudiantes/<int:student_id>/toggle', methods=['POST'])
+@login_required
+def toggle_status(student_id):
+    try:
+        estudiante = Estudiante.query.get_or_404(student_id)
+        estudiante.estado = not estudiante.estado
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'activo': estudiante.estado,
+            'message': f'Estado del estudiante {"activado" if estudiante.estado else "desactivado"} exitosamente'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Error al cambiar el estado del estudiante',
+            'error': str(e)
+        }), 400 
