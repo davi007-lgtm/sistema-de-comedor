@@ -258,44 +258,50 @@ def api_obtener_historial():
 @attendance_bp.route('/asistencia/registrar', methods=['POST'])
 @login_required
 def registrar_asistencia():
-    """Endpoint para registrar asistencia via formulario HTML"""
+    """Ruta para registrar asistencia manualmente"""
     try:
-        estudiante_id = request.form['estudiante_id']
-        tipo = request.form.get('tipo', 'almuerzo')  # valor por defecto
+        identificador = request.form['identificador']
+        tipo = request.form.get('tipo', 'almuerzo')
+        observaciones = request.form.get('observaciones', '')
 
-        # Verificar si el estudiante existe
-        estudiante = Estudiante.query.get_or_404(estudiante_id)
-        
+        # Buscar estudiante por identificador
+        estudiante = Estudiante.query.filter_by(identificador=identificador).first()
+        if not estudiante:
+            flash('Estudiante no encontrado', 'error')
+            return redirect(url_for('attendance.registro_manual'))
+
         # Verificar si el estudiante está activo
         if not estudiante.estado:
             flash('El estudiante no está activo', 'error')
-            return redirect(url_for('attendance.index'))
+            return redirect(url_for('attendance.registro_manual'))
 
         # Verificar si ya existe un registro para este tipo de comida hoy
         hoy = datetime.utcnow().date()
         registro_existente = Asistencia.query.filter(
-            Asistencia.estudiante_id == estudiante_id,
+            Asistencia.estudiante_id == estudiante.id,
             Asistencia.tipo == tipo,
             db.func.date(Asistencia.fecha) == hoy
         ).first()
 
         if registro_existente:
             flash(f'Ya existe un registro de {tipo} para este estudiante hoy', 'warning')
-            return redirect(url_for('attendance.index'))
+            return redirect(url_for('attendance.registro_manual'))
 
         # Crear nuevo registro de asistencia
         asistencia = Asistencia(
-            estudiante_id=estudiante_id,
+            estudiante_id=estudiante.id,
             tipo=tipo,
-            registrado_por=current_user.id
+            metodo_registro='manual',
+            registrado_por=current_user.id,
+            observaciones=observaciones
         )
         db.session.add(asistencia)
         db.session.commit()
 
         flash(f'Asistencia registrada exitosamente para {estudiante.nombre}', 'success')
-        return redirect(url_for('attendance.index'))
+        return redirect(url_for('attendance.registro_manual'))
 
     except Exception as e:
         db.session.rollback()
-        flash('Error al registrar la asistencia: ' + str(e), 'error')
-        return redirect(url_for('attendance.index')) 
+        flash(f'Error al registrar la asistencia: {str(e)}', 'error')
+        return redirect(url_for('attendance.registro_manual')) 

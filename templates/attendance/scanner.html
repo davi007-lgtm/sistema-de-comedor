@@ -4,7 +4,7 @@
 
 {% block styles %}
 <style>
-    #preview {
+    #reader {
         width: 100%;
         max-width: 640px;
         margin: 0 auto;
@@ -13,16 +13,6 @@
         position: relative;
         overflow: hidden;
         border-radius: 10px;
-    }
-    .scanner-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.1);
-        border: 2px solid #198754;
-        pointer-events: none;
     }
     .camera-error {
         text-align: center;
@@ -55,15 +45,14 @@
                         <i class="fas fa-qrcode me-2"></i>Escáner QR
                     </h5>
                     <div>
-                        <button id="switchCamera" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-camera-rotate me-2"></i>Cambiar Cámara
+                        <button id="startCamera" class="btn btn-success btn-sm">
+                            <i class="fas fa-play me-2"></i>Iniciar Cámara
                         </button>
                     </div>
                 </div>
                 <div class="card-body">
                     <div class="scanner-container mb-3">
-                        <video id="preview"></video>
-                        <div class="scanner-overlay"></div>
+                        <div id="reader"></div>
                     </div>
                     <div class="camera-error d-none">
                         <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
@@ -118,44 +107,44 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Instascan para escaneo QR -->
-<script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+<!-- HTML5 QR Code Scanner -->
+<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
-let scanner = null;
-let currentCamera = 0;
-let cameras = [];
+let html5QrcodeScanner = null;
+
+function onScanSuccess(decodedText, decodedResult) {
+    handleQRCode(decodedText);
+}
+
+function onScanFailure(error) {
+    // Manejar errores silenciosamente
+    console.warn(`Código QR no detectado: ${error}`);
+}
 
 async function initScanner() {
     try {
         // Ocultar mensaje de error si está visible
         document.querySelector('.camera-error').classList.add('d-none');
         
-        // Obtener las cámaras disponibles
-        cameras = await Instascan.Camera.getCameras();
-        
-        if (cameras.length > 0) {
-            // Crear el scanner
-            scanner = new Instascan.Scanner({
-                video: document.getElementById('preview'),
-                mirror: false // Importante para móviles
-            });
-
-            // Manejar los códigos QR escaneados
-            scanner.addListener('scan', function(content) {
-                handleQRCode(content);
-            });
-
-            // Iniciar con la cámara trasera si está disponible
-            let selectedCamera = cameras[currentCamera];
-            if (cameras.length > 1) {
-                // En móviles, preferir la cámara trasera
-                selectedCamera = cameras.find(camera => !camera.name.toLowerCase().includes('front')) || cameras[0];
-            }
-
-            await scanner.start(selectedCamera);
-        } else {
-            showCameraError();
+        if (html5QrcodeScanner) {
+            await html5QrcodeScanner.clear();
         }
+
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { 
+                fps: 10,
+                qrbox: {width: 250, height: 250},
+                aspectRatio: 1.0,
+                showTorchButtonIfSupported: true,
+                showZoomSliderIfSupported: true,
+                defaultZoomValueIfSupported: 2
+            }
+        );
+        
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        
+        console.log('Scanner iniciado con éxito');
     } catch (e) {
         console.error('Error al inicializar el scanner:', e);
         showCameraError();
@@ -164,7 +153,6 @@ async function initScanner() {
 
 function showCameraError() {
     document.querySelector('.camera-error').classList.remove('d-none');
-    document.querySelector('.scanner-container').style.display = 'none';
 }
 
 async function handleQRCode(content) {
@@ -238,17 +226,12 @@ function updateRegistrosRecientes(data) {
     }
 }
 
-// Cambiar de cámara
-document.getElementById('switchCamera').addEventListener('click', async () => {
-    if (cameras.length > 1) {
-        currentCamera = (currentCamera + 1) % cameras.length;
-        if (scanner) {
-            await scanner.start(cameras[currentCamera]);
-        }
-    }
-});
+// Botón para iniciar la cámara
+document.getElementById('startCamera').addEventListener('click', initScanner);
 
-// Inicializar el scanner cuando se carga la página
-document.addEventListener('DOMContentLoaded', initScanner);
+// Mostrar mensaje inicial
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Página cargada, esperando clic para iniciar cámara');
+});
 </script>
 {% endblock %} 

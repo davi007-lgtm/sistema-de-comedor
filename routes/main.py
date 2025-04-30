@@ -2,7 +2,7 @@ from flask import Blueprint, render_template
 from flask_login import login_required
 from models import Estudiante, Asistencia, Menu
 from datetime import datetime, date, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 
 main_bp = Blueprint('main', __name__)
 
@@ -14,10 +14,13 @@ def index():
     current_date = datetime.now()  # Para mostrar la fecha completa con nombre del día
     
     # Estadísticas generales
-    asistencias_hoy = Asistencia.query.filter_by(fecha=hoy).count()
+    asistencias_hoy = Asistencia.query.filter(
+        cast(Asistencia.fecha, Date) == hoy
+    ).count()
+    
     total_estudiantes = Estudiante.query.count()
-    estudiantes_becados = Estudiante.query.filter_by(tipo_estudiante='becado').count()
-    estudiantes_pagados = Estudiante.query.filter_by(tipo_estudiante='pagado').count()
+    estudiantes_becados = Estudiante.query.filter_by(tipo_estudiante='becado', estado=True).count()
+    estudiantes_pagados = total_estudiantes - estudiantes_becados
     menus_activos = Menu.query.filter(Menu.fecha >= hoy).count()
 
     # Datos para el gráfico de asistencias (últimos 7 días)
@@ -34,17 +37,22 @@ def index():
     dias = []
     asistencias_por_dia = []
     fecha_actual = fecha_inicio
-    while fecha_actual <= hoy:
-        dias.append(fecha_actual.strftime('%d/%m'))
-        total = next(
-            (a.total for a in asistencias_semana if a.fecha == fecha_actual),
-            0
-        )
-        asistencias_por_dia.append(total)
-        fecha_actual += timedelta(days=1)
+    
+    # Inicializar el diccionario con todas las fechas en 0
+    asistencias_dict = {fecha_actual + timedelta(days=i): 0 for i in range(7)}
+    
+    # Actualizar con las asistencias reales
+    for asistencia in asistencias_semana:
+        if asistencia.fecha in asistencias_dict:
+            asistencias_dict[asistencia.fecha] = asistencia.total
+
+    # Convertir a listas para el gráfico
+    for fecha in sorted(asistencias_dict.keys()):
+        dias.append(fecha.strftime('%d/%m'))
+        asistencias_por_dia.append(asistencias_dict[fecha])
 
     # Últimas asistencias
-    ultimas_asistencias = Asistencia.query.order_by(
+    ultimas_asistencias = Asistencia.query.join(Estudiante).order_by(
         Asistencia.fecha.desc(),
         Asistencia.hora.desc()
     ).limit(5).all()

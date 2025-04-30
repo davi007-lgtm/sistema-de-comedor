@@ -32,16 +32,39 @@ class Estudiante(db.Model):
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
     asistencias = db.relationship('Asistencia', backref='estudiante', lazy=True)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'identificador': self.identificador,
+            'nombre': self.nombre,
+            'curso': self.curso,
+            'tipo_estudiante': self.tipo_estudiante,
+            'estado': self.estado
+        }
+
 class Asistencia(db.Model):
     __tablename__ = 'asistencias'
     
     id = db.Column(db.Integer, primary_key=True)
     estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiantes.id'), nullable=False)
-    fecha = db.Column(db.Date, nullable=False)
-    hora = db.Column(db.Time, nullable=False)
-    metodo_registro = db.Column(db.String(20))  # manual, QR, tarjeta
+    fecha = db.Column(db.Date, nullable=False, default=datetime.utcnow().date)
+    hora = db.Column(db.Time, nullable=False, default=datetime.utcnow().time)
+    tipo = db.Column(db.String(20), nullable=False, default='almuerzo')  # desayuno, almuerzo, cena
+    metodo_registro = db.Column(db.String(20), default='manual')  # manual, QR, tarjeta
     registrado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
     observaciones = db.Column(db.Text)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'estudiante_id': self.estudiante_id,
+            'fecha': self.fecha.isoformat(),
+            'hora': self.hora.isoformat(),
+            'tipo': self.tipo,
+            'metodo_registro': self.metodo_registro,
+            'registrado_por': self.registrado_por,
+            'observaciones': self.observaciones
+        }
 
 class Menu(db.Model):
     __tablename__ = 'menus'

@@ -34,7 +34,7 @@
                         <div class="mb-3">
                             <label for="searchType" class="form-label">Buscar por:</label>
                             <select class="form-select" id="searchType" name="searchType">
-                                <option value="cedula">Identificador</option>
+                                <option value="identificador">Identificador</option>
                                 <option value="nombre">Nombre</option>
                                 <option value="curso">Curso</option>
                             </select>
@@ -63,9 +63,17 @@
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('attendance.registrar_asistencia') }}">
                         <div class="mb-3">
-                            <label for="cedula" class="form-label">Identificador:</label>
-                            <input type="text" class="form-control" id="cedula" name="cedula" required 
+                            <label for="identificador" class="form-label">Identificador:</label>
+                            <input type="text" class="form-control" id="identificador" name="identificador" required 
                                    placeholder="Ingrese el identificador del estudiante...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tipo" class="form-label">Tipo de Comida:</label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="desayuno">Desayuno</option>
+                                <option value="almuerzo" selected>Almuerzo</option>
+                                <option value="cena">Cena</option>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="observaciones" class="form-label">Observaciones:</label>
@@ -103,28 +111,7 @@
                                 </tr>
                             </thead>
                             <tbody id="searchResults">
-                                {% for estudiante in estudiantes %}
-                                <tr class="fade-in">
-                                    <td class="text-nowrap">{{ estudiante.identificador }}</td>
-                                    <td>{{ estudiante.nombre }}</td>
-                                    <td>{{ estudiante.curso }}</td>
-                                    <td>
-                                        {% if estudiante.tipo_estudiante == 'becado' %}
-                                        <span class="badge bg-success">Becado</span>
-                                        {% else %}
-                                        <span class="badge bg-info">Pagado</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        <form method="POST" action="{{ url_for('attendance.registrar_asistencia') }}" class="d-inline">
-                                            <input type="hidden" name="cedula" value="{{ estudiante.identificador }}">
-                                            <button type="submit" class="btn btn-success btn-sm" title="Registrar Asistencia">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% endfor %}
+                                <!-- Los resultados se cargarán dinámicamente aquí -->
                             </tbody>
                         </table>
                     </div>
@@ -160,11 +147,7 @@
                                     <td>{{ asistencia.estudiante.nombre }}</td>
                                     <td>{{ asistencia.estudiante.curso }}</td>
                                     <td>
-                                        {% if asistencia.estudiante.tipo_estudiante == 'becado' %}
-                                        <span class="badge bg-success">Becado</span>
-                                        {% else %}
-                                        <span class="badge bg-info">Pagado</span>
-                                        {% endif %}
+                                        <span class="badge bg-info">{{ asistencia.tipo|title }}</span>
                                     </td>
                                     <td>
                                         <span class="badge {% if asistencia.metodo_registro == 'manual' %}bg-primary{% else %}bg-secondary{% endif %}">
@@ -182,99 +165,88 @@
     </div>
 </div>
 
+{% endblock %}
+
 {% block scripts %}
 <script>
-document.getElementById('searchForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const data = {
-        tipo: formData.get('searchType'),
-        valor: formData.get('searchValue')
-    };
-    
-    // Mostrar indicador de carga
-    const tbody = document.getElementById('searchResults');
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('searchForm');
+    const searchResults = document.getElementById('searchResults');
     const resultCount = document.getElementById('resultCount');
-    
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="5">
-                <div class="search-message">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Buscando...</span>
-                    </div>
-                    <p class="mt-2 mb-0">Buscando estudiantes...</p>
-                </div>
-            </td>
-        </tr>
-    `;
-    
-    fetch('{{ url_for("attendance.api_buscar_estudiante") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        tbody.innerHTML = '';
-        resultCount.textContent = `${data.estudiantes.length} resultados`;
+
+    searchForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = {
+            tipo: formData.get('searchType'),
+            valor: formData.get('searchValue')
+        };
         
-        if (data.estudiantes.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5">
-                        <div class="search-message">
-                            <i class="fas fa-info-circle text-info"></i>
-                            <p class="mt-2 mb-0">No se encontraron estudiantes</p>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            return;
+        try {
+            const response = await fetch('{{ url_for("attendance.api_buscar_estudiante") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                resultCount.textContent = `${result.estudiantes.length} resultados`;
+                searchResults.innerHTML = result.estudiantes.map(estudiante => `
+                    <tr>
+                        <td>${estudiante.identificador}</td>
+                        <td>${estudiante.nombre}</td>
+                        <td>${estudiante.curso}</td>
+                        <td>
+                            <span class="badge ${estudiante.tipo_estudiante === 'becado' ? 'bg-success' : 'bg-info'}">
+                                ${estudiante.tipo_estudiante}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <button onclick="registrarAsistencia('${estudiante.id}')" class="btn btn-success btn-sm">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                alert('Error en la búsqueda: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al realizar la búsqueda');
         }
-        
-        data.estudiantes.forEach((estudiante, index) => {
-            const row = document.createElement('tr');
-            row.className = 'fade-in';
-            row.style.animationDelay = `${index * 0.1}s`;
-            row.innerHTML = `
-                <td class="text-nowrap">${estudiante.cedula}</td>
-                <td>${estudiante.nombre}</td>
-                <td>${estudiante.curso}</td>
-                <td>
-                    <span class="badge ${estudiante.becado ? 'bg-success' : 'bg-info'}">
-                        ${estudiante.becado ? 'Becado' : 'Pagado'}
-                    </span>
-                </td>
-                <td class="text-center">
-                    <form method="POST" action="{{ url_for('attendance.registrar_asistencia') }}" class="d-inline">
-                        <input type="hidden" name="cedula" value="${estudiante.cedula}">
-                        <button type="submit" class="btn btn-success btn-sm" title="Registrar Asistencia">
-                            <i class="fas fa-check"></i>
-                        </button>
-                    </form>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5">
-                    <div class="search-message">
-                        <i class="fas fa-exclamation-triangle text-danger"></i>
-                        <p class="mt-2 mb-0">Error al realizar la búsqueda</p>
-                    </div>
-                </td>
-            </tr>
-        `;
-        resultCount.textContent = '0 resultados';
     });
 });
+
+async function registrarAsistencia(estudianteId) {
+    try {
+        const response = await fetch('{{ url_for("attendance.api_registrar_asistencia") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                estudiante_id: estudianteId,
+                tipo: document.getElementById('tipo').value
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Asistencia registrada exitosamente');
+            location.reload();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al registrar la asistencia');
+    }
+}
 </script>
-{% endblock %}
 {% endblock %} 

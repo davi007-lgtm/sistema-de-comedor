@@ -30,7 +30,6 @@ def nuevo_menu():
             comida_principal=request.form['comida_principal'],
             guarnicion=request.form['guarnicion'],
             postre=request.form['postre'],
-            dieta_aplicable=request.form['dieta_aplicable'],
             calorias=request.form.get('calorias', type=int),
             notas=request.form['notas']
         )
@@ -40,9 +39,9 @@ def nuevo_menu():
             db.session.commit()
             flash('Menú registrado exitosamente', 'success')
             return redirect(url_for('menus.lista_menus'))
-        except:
+        except Exception as e:
             db.session.rollback()
-            flash('Error al registrar el menú', 'error')
+            flash(f'Error al registrar el menú: {str(e)}', 'error')
     
     return render_template('menus/nuevo.html')
 
@@ -56,7 +55,6 @@ def editar_menu(id):
         menu.comida_principal = request.form['comida_principal']
         menu.guarnicion = request.form['guarnicion']
         menu.postre = request.form['postre']
-        menu.dieta_aplicable = request.form['dieta_aplicable']
         menu.calorias = request.form.get('calorias', type=int)
         menu.notas = request.form['notas']
         
@@ -64,9 +62,9 @@ def editar_menu(id):
             db.session.commit()
             flash('Menú actualizado exitosamente', 'success')
             return redirect(url_for('menus.lista_menus'))
-        except:
+        except Exception as e:
             db.session.rollback()
-            flash('Error al actualizar el menú', 'error')
+            flash(f'Error al actualizar el menú: {str(e)}', 'error')
     
     return render_template('menus/editar.html', menu=menu)
 
@@ -95,8 +93,8 @@ def eliminar_menu(id):
         db.session.delete(menu)
         db.session.commit()
         flash('Menú eliminado exitosamente', 'success')
-    except:
+    except Exception as e:
         db.session.rollback()
-        flash('Error al eliminar el menú', 'error')
+        flash(f'Error al eliminar el menú: {str(e)}', 'error')
     
     return redirect(url_for('menus.lista_menus')) 

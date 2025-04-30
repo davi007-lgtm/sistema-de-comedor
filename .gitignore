@@ -27,5 +27,10 @@ Thumbs.db
 .env
 .flaskenv
 
+# Certificados SSL
+ssl/
+*.pem
+*.key
+
 # Archivos de migración de base de datos
 migrations/ 
