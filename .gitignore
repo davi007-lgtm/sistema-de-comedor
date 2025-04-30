@@ -33,4 +33,7 @@ ssl/
 *.key
 
 # Archivos de migración de base de datos
-migrations/ 
+migrations/
+
+# Carpeta de juegos
+game/ 
